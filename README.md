@@ -10,9 +10,9 @@
 - flask-login
     
 ## Instructions
-    -Edit config.py in app. Set username and password for mysql db.
-    -Create db chat-app in mysql.
-    -If using ssl configure in run.py
-    -To run:
-        *with ssl    : python run.py ssl
-        *without ssl : python run.py
+- Edit config.py in app. Set username and password for mysql db.
+- Create db chat-app in mysql.
+- If using ssl configure in run.py
+- To run:
+    * with ssl    : python run.py ssl
+    * without ssl : python run.py
