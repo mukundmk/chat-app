@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+        <style>
+            .navbar-inverse .navbar-brand:hover,
+            .navbar-inverse .navbar-brand:focus,
+            .navbar-inverse .navbar-brand:not(:focus) {
+              background-color: transparent;
+              color: #ffffff;
+            }
+        </style>
+        <nav class="navbar navbar-inverse">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <div class="navbar-brand">Chat-App</div>
+                </div>
+                <div>
+                    <ul class="nav navbar-nav navbar-right">
+                    {% if register %}
+                        <li><a href="/login">Login</a></li>
+                    {% else %}
+                        <li><a href="/register">Register</a></li>
+                    {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </head>
+    {% block body %}{% endblock %}
+</html>
