@@ -8,6 +8,15 @@ passwd = ''
 host = 'localhost'
 port = '3306'
 database = 'chat_app'
-SECRET_KEY = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 SQLALCHEMY_DATABASE_URI = 'mysql://' + user_name + ':' + passwd + '@' + host + ':' + port + '/' + database
+
+SECRET_KEY = ''
+TOKEN_SALT = ''
+
+MAIL_SERVER = 'smtp.gmail.com'
+MAIL_PORT = 587
+MAIL_USE_TLS = True
+MAIL_USERNAME = ''
+MAIL_PASSWORD = ''
+DEFAULT_MAIL_SENDER = 'Chat-App'
 

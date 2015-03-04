@@ -8,14 +8,15 @@ class User(db.Model):
     name = db.Column(db.String(64), index=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password = db.Column(db.String(130), index=True)
+    activated = db.Column(db.Boolean, index=True)
+    status = db.Column(db.String(140), index=True)
 
     @staticmethod
     def is_authenticated():
         return True
 
-    @staticmethod
-    def is_active():
-        return True
+    def is_active(self):
+        return self.activated
 
     @staticmethod
     def is_anonymous():

@@ -6,9 +6,13 @@
 - flask-sqlalchemy
 - flask-socketio
 - flask-login
+- flask-mail
     
 ## Instructions
-- Edit config.py in app. Set username and password for mysql db.
+- Edit config.py in app. 
+    * Set username and password for mysql db.
+    * Set app secret key and salt for token.
+    * Set username and password for gmail smtp.
 - Create db chat-app in mysql.
 - If using ssl configure in run.py
 - To run:
