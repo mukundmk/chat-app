@@ -3,8 +3,6 @@
 ## Requirements
 - python 2.7.9
 - flask
-- wtforms
-- flask-wtf
 - flask-sqlalchemy
 - flask-socketio
 - flask-login
