@@ -1,13 +1,13 @@
 # chat-app
 
 ## Requirements
-    python 2.7.9
-    flask
-    wtforms
-    flask-wtf
-    flask-sqlalchemy
-    flask-socketio
-    flask-login
+- python 2.7.9
+- flask
+- wtforms
+- flask-wtf
+- flask-sqlalchemy
+- flask-socketio
+- flask-login
     
 ## Instructions
     -Edit config.py in app. Set username and password for mysql db.
