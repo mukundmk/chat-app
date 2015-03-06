@@ -1,0 +1,40 @@
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+<form id="upload_form">
+    <input id="file" onchange="upload_image()" name="file" type="file" accept=".jpg,.png" style="postion:fixed;top:-300px;left:-300px;width:0px;">
+</form>
+<div class="row">
+    <div class="col-sm-12 col-md-12" style="height:15%"></div>
+    <div class="col-sm-12 col-md-12">
+        <div class="row">
+            <div class="col-md-offset-1 col-md-3 col-sm-3 " align="center"> <img id="image" onclick="change_image()" class="img-circle" height="150" width="150"/> </div>
+            <div class=" col-md-6 col-sm-6 ">
+                <table class="table table-user-information">
+                    <tbody>
+                        <tr>
+                            <td style="vertical-align: middle;width:15%;height:50px;">Email:</td>
+                            <td style="vertical-align: middle;width:60%;">{{ user['email'] }}</td>
+                            <td style="vertical-align: middle;width:25%;"></td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align: middle;width:15%;">Name:</td>
+                            <td id="static_name" style="vertical-align: middle;width:60%;">{{ user['name'] }}</td>
+                            <td id="edit_name" style="vertical-align: middle;display: none;width: 60%;"><input id="input_name" class="form-control" placeholder="Enter name"/></td>
+                            <td align="center" id="button_static_name" style="width:25%;"><button onclick="edit('name')" class="btn btn-warning"><i class="glyphicon glyphicon-edit"></i></button></td>
+                            <td align="center" id="button_edit_name" style="display: none;width:25%;"><button onclick="change('name')" class="btn btn-success"><i class="fa fa-check"></i></button><button onclick="cancel('name')" class="btn btn-danger"><i class="fa fa-times"></i></button></td>
+                        </tr>
+                        <tr>
+                            <td style="width:15%;">Status:</td>
+                            <td id="static_status" style="vertical-align: middle;width:60%;">{{ user['status'] }}</td>
+                            <td id="edit_status" style="vertical-align: middle;display: none;width: 60%;"><input id="input_status" class="form-control" placeholder="Enter status"/></td>
+                            <td align="center" id="button_static_status" style="width:25%;"><button onclick="edit('status')" class="btn btn-warning"><i class="glyphicon glyphicon-edit"></i></button></td>
+                            <td align="center" id="button_edit_status" style="display: none;width:25%;"><button onclick="change('status')" class="btn btn-success"><i class="fa fa-check"></i></button><button onclick="cancel('status')" class="btn btn-danger"><i class="fa fa-times"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $("#image").attr("src","/get_image?id="+user.id+"&time="+changed_time);
+</script>

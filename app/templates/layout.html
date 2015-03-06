@@ -2,25 +2,43 @@
     <head>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/material-wfont.min.css">
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
         <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-        <script src="https://cdn.socket.io/socket.io-1.3.4.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/material.min.js"></script>
         <style>
+            ::-webkit-scrollbar {
+                display: none;
+            }
             .navbar-inverse .navbar-brand:hover,
             .navbar-inverse .navbar-brand:focus,
             .navbar-inverse .navbar-brand:not(:focus) {
               background-color: transparent;
               color: #ffffff;
             }
+            .img-navbar{
+                position: absolute;
+                width: 40px;
+                height: 40px;
+                top: 5px;
+                left: 0px;
+            }
+            .name-navbar{
+                position: absolute;
+                top: 15px;
+                left: 45px;
+            }
         </style>
-        <nav class="navbar navbar-inverse">
+        <nav class="navbar navbar-inverse" style="background-color:#01579b">
             <div class="container-fluid">
                 <div class="navbar-header">
-                    <div class="navbar-brand">Chat-App</div>
+                    <div class="navbar-brand">Howz U?</div>
                 </div>
                 <div>
-                    <ul class="nav navbar-nav">
-                        <li><a href="#">{{ name }}</a></li>
+                    <ul class="nav navbar-nav" style="">
+                        <li id="name_nav"><a href="#"><div class="name-navbar">{{ name }}</div><img src="/get_image?id={{ userid }}" class="my-img img-circle img-navbar"/></a></li>
+                        <li id="chat_nav"><a href="#">Chat</a></li>
                     </ul>
                 </div>
                 <div>

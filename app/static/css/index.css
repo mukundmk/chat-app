@@ -1,0 +1,142 @@
+.sidebar {
+    display: none;
+    position: fixed;
+    top: 51px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 20px;
+    padding-top: 0px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #f5f5f5;
+    border-right: 1px solid #eee;
+}
+.nav-sidebar {
+    overflow-y: auto;
+    margin-right: -21px;
+    margin-bottom: 20px;
+    margin-left: -20px;
+}
+
+.nav-sidebar > li > a {
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+.nav-sidebar > .active > a,
+.nav-sidebar > .active > a:hover,
+.nav-sidebar > .active > a:focus {
+    color: #fff;
+    background-color: #428bca;
+}
+
+#container{
+    min-height:80%;
+    max-height:80%;
+    overflow: scroll;
+}
+
+.bubble-container{
+	display:block;
+	clear: both;
+	position:relative;
+	margin-bottom:10px;
+	min-height: 53px;
+}
+
+.avatar{
+	border: 2px solid #ffffff;
+	box-sizing: initial;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.avatar,.avatar img{
+	width: 50px;
+	height: 50px;
+	-webkit-border-radius: 30px;
+	border-radius: 30px;
+}
+
+
+.bubble{
+	padding: 13px;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.9);
+	color: #575858;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.avatar-left:before {
+	content: '';
+	position: absolute;
+	border-style: solid;
+	border-width: 10px 14px 10px 0;
+	border-color: transparent #ffffff;
+	display: block;
+	width: 0;
+	z-index: 1;
+	left: 61px;
+	top: 13px;
+}
+
+.avatar-right:before
+{
+	content: '';
+	position: absolute;
+	border-style: solid;
+	border-width: 10px 0 10px 14px;
+	border-color: transparent #ffffff;
+	display: block;
+	width: 0;
+	z-index: 1;
+	right: 61px;
+	top: 13px;
+}
+
+.avatar-left{
+	float: left;
+	width: 50px;
+}
+
+.bubble-left{
+	overflow: hidden;
+	margin-left: 75px;
+}
+
+.avatar-right{
+	float: right;
+	width: 50px;
+}
+
+.bubble-right{
+	overflow: hidden;
+	margin-right: 75px;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+.navbar-nav > li > .active{
+    background-color: #0277bd;
+}

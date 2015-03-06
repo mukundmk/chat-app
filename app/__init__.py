@@ -1,11 +1,10 @@
 __author__ = 'mukundmk'
 
-import ssl
-
 from flask import Flask
 from flask.ext.login import LoginManager
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.mail import Mail
+from flask.ext.socketio import SocketIO
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -13,7 +12,9 @@ lm = LoginManager(app)
 lm.login_view = 'login'
 db = SQLAlchemy(app)
 mail = Mail(app)
+socketio = SocketIO(app)
+active_users = dict()
 
 print app.config['SERVER_NAME']
 
-from app import views, models
+from app import views, models, events, gevent_ssl_fix
