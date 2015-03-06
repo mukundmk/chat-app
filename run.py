@@ -2,7 +2,7 @@ __author__ = 'mukundmk'
 
 import ssl
 import sys
-from app import app
+from app import app, socketio
 
 SSL_CERTIFICATE = ''
 SSL_KEY = ''
@@ -13,4 +13,6 @@ if len(sys.argv) > 1 and sys.argv[1] == 'ssl':
     app.run(debug=True, ssl_context=ssl_context)
 
 else:
-    app.run(debug=True)
+    #app.run(debug=True)
+    app.debug = True
+    socketio.run(app)
