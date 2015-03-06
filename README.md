@@ -7,6 +7,7 @@
 - flask-socketio
 - flask-login
 - flask-mail
+- gevent
     
 ## Instructions
 - Edit config.py in app. 
