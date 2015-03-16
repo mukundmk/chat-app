@@ -27,3 +27,12 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.id
+
+
+class KeyTable(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    passphrase = db.Column(db.String(70), index=True)
+    publickey = db.Column(db.String(350), index=True, default='')
+
+    def __repr__(self):
+        return '<Key %r>' % self.id

@@ -11,6 +11,7 @@ database = 'chat_app'
 SQLALCHEMY_DATABASE_URI = 'mysql://' + user_name + ':' + passwd + '@' + host + ':' + port + '/' + database
 
 SECRET_KEY = ''
+IV = ''
 TOKEN_SALT = ''
 
 MAIL_SERVER = 'smtp.gmail.com'

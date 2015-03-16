@@ -140,3 +140,58 @@
 .navbar-nav > li > .active{
     background-color: #0277bd;
 }
+.ui-autocomplete {
+    width:300px;
+    height: 60px;
+    padding: 5px 0;
+}
+.highlight > a,
+.highlight > a:hover,
+.highlight > a:focus {
+    color: #fff;
+    background-color: #428bca;
+}
+.label1 {
+    background-color: #FFF;
+    color : #000;
+}
+
+.dropdown-menu > .active > a,
+.dropdown-menu > .active > a:hover,
+.dropdown-menu > .active > a:focus {
+    color: #fff;
+    background-color: #428bca;
+}
+
+.icon_counter_red {
+    background-color      : #f00;
+}
+
+.icon_counter_blue {
+    background-color      : #39f;
+}
+
+.icon_counter_green {
+    background-color      : #3c3;
+}
+
+.icon_counter {
+    color                 : #fff;
+    font-family           : "Arial";
+    font-size             : 14px;
+    font-weight           : 600;
+
+    position              : absolute;
+
+    padding               : 0px 2px;
+    margin-top            : 6px;
+    margin-left           : -3px;
+
+    -webkit-border-radius : 3px;
+    -moz-border-radius    : 3px;
+    border-radius         : 3px;
+
+    -webkit-box-shadow    : inset 0px 0px 2px 0px rgba(50, 50, 50, 0.75);
+    -moz-box-shadow       : inset 0px 0px 2px 0px rgba(50, 50, 50, 0.75);
+    box-shadow            : inset 0px 0px 2px 0px rgba(50, 50, 50, 0.75);
+}

@@ -5,6 +5,7 @@ from flask.ext.login import LoginManager
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.mail import Mail
 from flask.ext.socketio import SocketIO
+from .neo4jclient import Neo4jClient
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -14,7 +15,6 @@ db = SQLAlchemy(app)
 mail = Mail(app)
 socketio = SocketIO(app)
 active_users = dict()
+neo4jcli = Neo4jClient()
 
-print app.config['SERVER_NAME']
-
-from app import views, models, events, gevent_ssl_fix
+from app import views, models, events

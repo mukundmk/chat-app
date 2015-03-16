@@ -6,9 +6,11 @@ import os.path
 
 from flask.ext.login import login_required, login_user, logout_user, current_user
 from flask import *
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
 
-from app import app, db, lm, active_users
-from .models import User
+from app import app, db, lm, active_users, neo4jcli
+from .models import User, KeyTable
 from .token import generate_token, verify_token
 from .mail import send_email
 
@@ -40,6 +42,11 @@ def login():
                 login_user(user, remember=True)
             else:
                 login_user(user)
+            key = PBKDF2(request.form['password'], app.config['SECRET_KEY'], count=10000).encode('hex')
+            aes = AES.new(key, AES.MODE_CBC, IV=app.config['IV'])
+            cyphertext = KeyTable.query.get(user.id).passphrase.decode('hex')
+            passphrase = aes.decrypt(cyphertext)
+            session['passphrase'] = passphrase
             g.user = user
             return redirect(url_for('index'))
 
@@ -70,7 +77,16 @@ def register():
         confirm_url = url_for('confirm_email', token=token, _external=True)
         msg = render_template('confirm.html', confirm_url=confirm_url,
                               time=str(datetime.datetime.now().replace(microsecond=0)))
+        neo4jcli.add_user(user.id)
+        key = PBKDF2(request.form['password'], app.config['SECRET_KEY'], count=10000).encode('hex')
+        passphrase = os.urandom(32)
+        aes = AES.new(key, AES.MODE_CBC, IV=app.config['IV'])
+        cyphertext = aes.encrypt(passphrase)
+        encrypted_key = KeyTable(id=user.id, passphrase=cyphertext.encode('hex'))
+        db.session.add(encrypted_key)
+        db.session.commit()
         send_email(user.email, subject, msg)
+
         return redirect(url_for('index'))
     else:
         return render_template('register.html', register=True)
@@ -91,16 +107,26 @@ def confirm_email(token):
 @login_required
 def index():
     active_users[str(current_user.id)] = True
+    add, friends = neo4jcli.get_added_user(g.user.id)
     users = list()
-    for user in User.query.filter_by().order_by(User.name):
-        if user.id == g.user.id:
-            continue
+    added = list()
+    for friend in friends:
+        user = User.query.get(int(friend))
         data = dict()
         data['id'] = str(user.id)
         data['name'] = str(user.name)
         users.append(data)
-    print users
-    return render_template('index.html', name=g.user.name, userid=g.user.id, users=users)
+
+    for toadd in add:
+        user = User.query.get(int(toadd))
+        data = dict()
+        data['id'] = str(user.id)
+        data['name'] = str(user.name)
+        added.append(data)
+
+    users.sort(key=lambda item: item['name'])
+    added.sort(key=lambda item: item['name'])
+    return render_template('index.html', name=g.user.name, userid=g.user.id, users=users, added=added)
 
 
 @app.route('/logout')
@@ -114,7 +140,11 @@ def logout():
 @app.route('/get_online')
 @login_required
 def get_online():
-    return json.dumps(active_users)
+    friends = neo4jcli.get_friends(g.user.id)
+    active = dict()
+    for friend in friends:
+        active[friend] = active_users.get(friend, False)
+    return json.dumps(active)
 
 
 @app.route('/get_user')
@@ -130,7 +160,6 @@ def get_user():
 @login_required
 def get_image():
     uid = request.args.get('id')
-    print uid
     if os.path.isfile('app/static/images/'+uid+'.png'):
         return send_file('static/images/'+uid+'.png', mimetype='image/png')
     elif os.path.isfile('app/static/images/'+uid+'.jpg'):
@@ -152,7 +181,6 @@ def get_messages():
         for i in range(len(data)//2):
             response['data'].append([data[2*i].decode('string_escape').strip(),
                                      data[(2*i)+1].decode('string_escape').strip()])
-    print response
     return json.dumps(response)
 
 
@@ -170,16 +198,22 @@ def get_profile():
 @app.route('/profile_of')
 @login_required
 def profile_of():
-    user = User.query.get(int(request.args["id"]))
+    user = User.query.get(int(request.args['id']))
     if user:
         response = dict()
-        response["id"] = user.id
-        response["name"] = user.name
-        response["email"] = user.email
-        response["status"] = user.status
+        response['id'] = user.id
+        response['name'] = user.name
+        response['email'] = user.email
+        response['status'] = user.status
+        response['friendship'] = "2"
+        if not neo4jcli.is_friend_of(str(g.user.id), response['id']):
+            if not neo4jcli.is_friend_of(response['id'], str(g.user.id)):
+                response['friendship'] = "0"
+            else:
+                response['friendship'] = "1"
         return json.dumps(response)
     else:
-        return "bad request", 400
+        return 'bad request', 400
 
 
 @app.route('/edit_profile', methods=['POST'])
@@ -211,3 +245,92 @@ def upload_image():
     img_file.save(f)
     f.close()
     return str(g.user.id)
+
+
+@app.route('/search_user')
+@login_required
+def search_user():
+    users = User.query.filter(User.name.like(request.args.get('query')+'%')).all()
+    data = list()
+    for i in users:
+        if i.id == g.user.id:
+            continue
+        user = dict()
+        user['value'] = str(i.id)
+        user['label'] = str(i.name)
+        data.append(user)
+    data.sort(key=lambda item: item['label'])
+    return json.dumps(data)
+
+
+@app.route('/add_friend', methods=['POST'])
+@login_required
+def add_friend():
+    user_id = request.form.get('id')
+    neo4jcli.add_friend(g.user.id, user_id)
+    add, friends = neo4jcli.get_added_user(g.user.id)
+    added = list()
+    users = list()
+
+    for friend in friends:
+        user = User.query.get(int(friend))
+        data = dict()
+        data['id'] = str(user.id)
+        data['name'] = str(user.name)
+        users.append(data)
+
+    for toadd in add:
+        user = User.query.get(int(toadd))
+        data = dict()
+        data['id'] = str(user.id)
+        data['name'] = str(user.name)
+        added.append(data)
+
+    users.sort(key=lambda item: item['name'])
+    added.sort(key=lambda item: item['name'])
+    return json.dumps({'users': users, 'added': added})
+
+
+@app.route('/decline_friend', methods=['POST'])
+@login_required
+def decline_friend():
+    user_id = request.form.get('id')
+    neo4jcli.decline_friend(user_id, g.user.id)
+    add, friends = neo4jcli.get_added_user(g.user.id)
+    added = list()
+
+    for toadd in add:
+        user = User.query.get(int(toadd))
+        data = dict()
+        data['id'] = str(user.id)
+        data['name'] = str(user.name)
+        added.append(data)
+
+    added.sort(key=lambda item: item['name'])
+    return json.dumps(added)
+
+
+@app.route('/get_passphrase')
+@login_required
+def get_passphrase():
+    return session.get('passphrase')
+
+
+@app.route('/update_publickey', methods=['POST'])
+@login_required
+def update_publickey():
+    key = KeyTable.query.get(g.user.id)
+    if key.publickey != request.form.get('publickey'):
+        key.publickey = request.form.get('publickey')
+        db.session.commit()
+    return 'Success'
+
+
+@app.route('/get_publickey')
+@login_required
+def get_publickey():
+    key = KeyTable.query.get(int(request.args.get('id')))
+    if key:
+        return json.dumps({'id': request.args.get('id'), 'key': key.publickey})
+    else:
+        return 'bad request', 400

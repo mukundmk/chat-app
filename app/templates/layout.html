@@ -1,12 +1,22 @@
 <html>
     <head>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/material-wfont.min.css">
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css" />
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
         <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/material.min.js"></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/cryptico.min.js'></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/jsbn.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/random.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/hash.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/rsa.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/aes.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/api.min.js"></script>
+        <script src="{{ url_for('static', filename='js/typeahead.js') }}"></script>
         <style>
             ::-webkit-scrollbar {
                 display: none;
@@ -33,7 +43,7 @@
         <nav class="navbar navbar-inverse" style="background-color:#01579b">
             <div class="container-fluid">
                 <div class="navbar-header">
-                    <div class="navbar-brand">Howz U?</div>
+                    <div class="navbar-brand">Chat!</div>
                 </div>
                 <div>
                     <ul class="nav navbar-nav" style="">
@@ -44,6 +54,28 @@
                 <div>
                     <ul class="nav navbar-nav navbar-right">
                             <li><a href="/logout">Logout</a></li>
+                    </ul>
+                    <form class="navbar-form navbar-right" role="search">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="search" style="width:200px" placeholder="Search User" autocomplete="off">
+                        </div>
+                    </form>
+                    <ul class="nav navbar-nav navbar-right dropdown">
+                        <li class="dropdown-toggle" data-toggle="dropdown" id="added">
+                            <a href="#">
+                                {% if added and added|count>0 %}
+                                <span class="badge alert-danger" id="added_count">{{ added|count }}</span>
+                                {% endif %}
+                                <i class="fa fa-user-plus fa-lg" style="font-size:150%;"></i>
+                            </a>
+                        </li>
+                        <ul class="dropdown-menu dropdown-menu-left" role="menu" aria-labelledby="added" id="added_list">
+                            {% if added %}
+                                {% for user in added %}
+                                <li><a href="javascript:view_profile('{{ user['id'] }}')"><img src="/get_image?id={{ user['id'] }}" class="img img-circle" width="30" height="30"/>  {{ user['name'] }}</a></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
                     </ul>
                 </div>
             </div>

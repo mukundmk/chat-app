@@ -13,8 +13,7 @@ def generate_token(email):
 def verify_token(token):
     serializer = URLSafeSerializer(app.config['SECRET_KEY'])
     try:
-        email = serializer.loads(token,
-                                 salt=app.config['TOKEN_SALT'])
+        email = serializer.loads(token, salt=app.config['TOKEN_SALT'])
     except:
         return False
     return email
