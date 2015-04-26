@@ -10,6 +10,7 @@ class User(db.Model):
     password = db.Column(db.String(130), index=True)
     activated = db.Column(db.Boolean, index=True)
     status = db.Column(db.String(140), index=True)
+    api_key = db.Column(db.String(32), index=True, unique=True)
 
     @staticmethod
     def is_authenticated():
@@ -36,3 +37,4 @@ class KeyTable(db.Model):
 
     def __repr__(self):
         return '<Key %r>' % self.id
+

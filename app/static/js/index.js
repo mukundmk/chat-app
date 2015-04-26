@@ -7,7 +7,7 @@ $(document).ready(function(){
     $("#profile").hide();
     $("#name_nav").click(switch_to_profile);
     $("#chat_nav").click(switch_to_chat);
-    $.get("/get_passphrase", set_keys);
+    $.get("/get_keys", set_keys);
     $.getJSON('/get_online', update_online);
     $("#search").typeahead({
         ajax: {
@@ -45,9 +45,22 @@ $(document).ready(function(){
         }
     });
 });
-function set_keys(passphrase){
-    private_key = cryptico.generateRSAKey(passphrase, 1024);
-    public_key = cryptico.publicKeyString(private_key);
+function set_keys(result){
+    var keys = JSON.parse(result);
+    private_key = keys.privatekey;
+    public_key = keys.publickey;
+    var params = certParser(private_key);
+    var key = pidCryptUtil.decodeBase64(params.b64);
+    rsa_decrypt = new pidCrypt.RSA();
+    var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
+    var tree = asn.toHexTree();
+    rsa_decrypt.setPrivateKeyFromASN(tree);
+    params = certParser(public_key);
+    key = pidCryptUtil.decodeBase64(params.b64);
+    rsa_encrypt = new pidCrypt.RSA();
+    asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
+    tree = asn.toHexTree();
+    rsa_encrypt.setPublicKeyFromASN(tree);
     $.post("/update_publickey", {publickey: public_key});
     set_active(null);
     $.getJSON('/get_user', ready);
@@ -59,22 +72,157 @@ function ready(result){
         console.log(msg);
     });
     socket.on('receive message', function(msg) {
-        var plaintext = cryptico.decrypt(msg.data, private_key).plaintext;
-        $("#messages_"+msg.from).append("<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('"+msg.from+"')\" src=\"/get_image?id="+msg.from+"\"/></div><div class=\"bubble bubble-left\">"+plaintext+"</div></div>");
+        if(msg.type == 'text') {
+            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(msg.data));
+            var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            $("#messages_" + msg.from).append("<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('" + msg.from + "')\" src=\"/get_image?id=" + msg.from + "\"/></div><div class=\"bubble bubble-left\">" + plaintext + "</div></div>");
+        }
+        else if(msg.type == 'image') {
+            var plaintext = msg.data;
+            $("#messages_" + msg.from).append("<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('" + msg.from + "')\" src=\"/get_image?id=" + msg.from + "\"/></div><div class=\"bubble bubble-left\"><button class=\"btn btn-primary\" onclick=\"viewImage('" + plaintext + "')\">Image</button></div></div>");
+        }
+        else if(msg.type == 'video') {
+            var plaintext = msg.data;
+            $("#messages_" + msg.from).append("<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('" + msg.from + "')\" src=\"/get_image?id=" + msg.from + "\"/></div><div class=\"bubble bubble-left\"><button class=\"btn btn-primary\" onclick=\"viewVideo('" + plaintext + "')\">Video</button></div></div>");
+        }
     });
     $('#send').click(function(event) {
         var msg = {};
         var plaintext = $("#msg").val();
+        if(plaintext=='')
+            return;
         msg.to = active_id;
+        msg.type = 'text';
         if(public_keys[msg.to]) {
-            msg.data_1 = cryptico.encrypt(plaintext, public_keys[msg.to]).cipher;
-            msg.data_2 = cryptico.encrypt(plaintext, public_key).cipher;
+            var params = certParser(public_keys[msg.to]);
+            var key = pidCryptUtil.decodeBase64(params.b64);
+            var rsa_encrypt2 = new pidCrypt.RSA();
+            var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
+            var tree = asn.toHexTree();
+            rsa_encrypt2.setPublicKeyFromASN(tree);
+            var crypted = rsa_encrypt2.encrypt(plaintext);
+            var fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
+            msg.data_1 = pidCryptUtil.fragment(fromHex,64);
+            crypted = rsa_encrypt.encrypt(plaintext);
+            fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
+            msg.data_2 = pidCryptUtil.fragment(fromHex,64);
             $("#msg").val("");
-            $("#messages_" + active_id).append("<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id=" + msg.from + "&time=" + changed_time + "\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\">" + plaintext + "</div></div>");
+            $("#messages_" + active_id).append("<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id=" + user.id + "&time=" + changed_time + "\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\">" + plaintext + "</div></div>");
             socket.emit('send message', msg);
         }
     });
+    $('#send_image').click(function(event){
+        $("#image_file").trigger("click");
+    });
+    $('#send_video').click(function(event){
+        $("#video_file").trigger("click");
+    });
 }
+
+function send_image(event){
+    var input = event.target;
+
+    var reader = new FileReader();
+    reader.onload = function(){
+        var msg = {};
+        var plaintext = reader.result;
+        msg.to = active_id;
+        msg.type = 'image';
+        if(public_keys[msg.to]) {
+            var params = certParser(public_keys[msg.to]);
+            var key = pidCryptUtil.decodeBase64(params.b64);
+            var rsa_encrypt2 = new pidCrypt.RSA();
+            var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
+            var tree = asn.toHexTree();
+            rsa_encrypt2.setPublicKeyFromASN(tree);
+            var crypted = rsa_encrypt2.encrypt(plaintext);
+            var fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
+            msg.data_1 = pidCryptUtil.fragment(fromHex,64);
+            crypted = rsa_encrypt.encrypt(plaintext);
+            fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
+            msg.data_2 = pidCryptUtil.fragment(fromHex,64);
+            $("#msg").val("");
+            $("#messages_"+ active_id).append("<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id=" + user.id + "&time=" + changed_time + "\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\"><button class=\"btn btn-primary\" onclick=\"viewImage2('"+plaintext+"')\">Image</button></div></div>");
+            socket.emit('send message', msg);
+        }
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+function send_video(event){
+    var input = event.target;
+
+    var reader = new FileReader();
+    reader.onload = function(){
+        var msg = {};
+        var plaintext = reader.result;
+        msg.to = active_id;
+        msg.type = 'video';
+        if(public_keys[msg.to]) {
+            var params = certParser(public_keys[msg.to]);
+            var key = pidCryptUtil.decodeBase64(params.b64);
+            var rsa_encrypt2 = new pidCrypt.RSA();
+            var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
+            var tree = asn.toHexTree();
+            rsa_encrypt2.setPublicKeyFromASN(tree);
+            var crypted = rsa_encrypt2.encrypt(plaintext);
+            var fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
+            msg.data_1 = pidCryptUtil.fragment(fromHex,64);
+            crypted = rsa_encrypt.encrypt(plaintext);
+            fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
+            msg.data_2 = pidCryptUtil.fragment(fromHex,64);
+            console.log(msg);
+            socket.emit('send message', msg);
+            $("#msg").val("");
+            $("#messages_"+ active_id).append("<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id=" + user.id + "&time=" + changed_time + "\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\"><button class=\"btn btn-primary\" onclick=\"viewVideo2('"+plaintext+"')\">Video</button></div></div>");
+        }
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function viewImage(imgsrcid){
+    $.ajax('/get_media_file?id='+imgsrcid,{
+        cache: true,
+        success: function(result){
+            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result));
+            var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            $("#show_img").attr("src",plaintext);
+            $("#image_modal").modal();
+        }
+    });
+}
+
+function viewImage2(imgsrc){
+    $("#show_img").attr("src",imgsrc);
+    $("#image_modal").modal();
+}
+
+function viewVideo(vidsrcid){
+    $.ajax('/get_media_file?id='+vidsrcid,{
+        cache: true,
+        success: function(result){
+            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result));
+            var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            var source = document.createElement('source');
+            $(source).attr({
+                'type':'video/mp4',
+                'src': plaintext
+            });
+            $("#show_vid").append(source);
+            $("#video_modal").modal();
+        }
+    });
+}
+
+function viewVideo2(vidsrc){
+    var source = document.createElement('source');
+    $(source).attr({
+        'type':'video/mp4',
+        'src': vidsrc
+    });
+    $("#show_vid").append(source);
+    $("#video_modal").modal();
+}
+
 function update_online(result){
     for(var i in result){
         if(result[i]){
@@ -90,6 +238,7 @@ function update_online(result){
     }
     setTimeout(function(){$.getJSON('/get_online', update_online);},10000);
 }
+
 function set_active(id){
     var current_id = active_id;
     active_id = id;
@@ -121,16 +270,34 @@ function set_active(id){
     }
     if($.inArray(id, loaded)==-1){
         $.getJSON('/get_messages?id='+id, function(result){
+            console.log(result);
             var id1 = result["id1"];
             var id2 = result["id2"];
             var text="";
             for(var i in result["data"]){
-                var plaintext = cryptico.decrypt(result["data"][i][1], private_key).plaintext;
+                if(result["data"][i][1]=='text'){
+                    var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result["data"][i][2]));
+                    var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+                    console.log('h');
+                    console.log(plaintext);
+                }
+                else
+                    var plaintext = result["data"][i][2];
                 if(result["data"][i][0]==id1){
-                    text+="<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id="+result["data"][i][0]+"&time="+changed_time+"\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\">"+plaintext+"</div></div>";
+                    if(result["data"][i][1]=='text')
+                        text+="<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id="+result["data"][i][0]+"&time="+changed_time+"\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\">"+plaintext+"</div></div>";
+                    else if(result["data"][i][1]=='image')
+                        text+="<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id="+result["data"][i][0]+"&time="+changed_time+"\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\"><button class=\"btn btn-primary\" onclick=\"viewImage('"+plaintext+"')\">Image</button></div></div>";
+                    else if(result["data"][i][1]=='video')
+                        text+="<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id="+result["data"][i][0]+"&time="+changed_time+"\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\"><button class=\"btn btn-primary\" onclick=\"viewVideo('"+plaintext+"')\">Video</button></div></div>";
                 }
                 else if(result["data"][i][0]==id2){
-                    text+="<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('"+result["data"][i][0]+"')\" src=\"/get_image?id="+result["data"][i][0]+"\"/></div><div class=\"bubble bubble-left\">"+plaintext+"</div></div>";
+                    if(result["data"][i][1]=='text')
+                        text+="<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('"+result["data"][i][0]+"')\" src=\"/get_image?id="+result["data"][i][0]+"\"/></div><div class=\"bubble bubble-left\">"+plaintext+"</div></div>";
+                    else if(result["data"][i][1]=='image')
+                        text+="<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('"+result["data"][i][0]+"')\" src=\"/get_image?id="+result["data"][i][0]+"\"/></div><div class=\"bubble bubble-left\"><button class=\"btn btn-primary\" onclick=\"viewImage('"+plaintext+"')\">Image</button></div></div>";
+                    else if(result["data"][i][1]=='video')
+                        text+="<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('"+result["data"][i][0]+"')\" src=\"/get_image?id="+result["data"][i][0]+"\"/></div><div class=\"bubble bubble-left\"><button class=\"btn btn-primary\" onclick=\"viewVideo('"+plaintext+"')\">Video</button></div></div>";
                 }
             }
             $("#messages_"+id2).prepend(text);

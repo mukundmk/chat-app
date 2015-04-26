@@ -23,10 +23,18 @@
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2">
             <div class="input-group">
                 <input type="text" class="form-control" id="msg" placeholder="Enter Message" />
-                <span class="input-group-btn">
-                    <button class="btn btn-success" type="button" id="send">Send</button>
-                </span>
+                <div class="input-group-btn dropup">
+                        <button class="btn btn-success" style="width:75px;padding-left: 0;padding-right: 0;border-right: 1px solid white;" type="button" id="send">Send</button>
+                        <button type="button" class="btn btn-info dropdown-toggle" style="" data-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-paperclip" style="font-size:19px;"></i>
+                        </button>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="#" id="send_image">Image</a></li>
+                            <li><a href="#" id="send_video">Video</a></li>
+                        </ul>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -63,4 +71,35 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="image_modal" tabindex="-1" role="dialog" aria-labelledby="modal_title" aria-hidden="true">
+    <div class="modal-dialog" style="width:800px">
+        <div class="modal-content">
+            <div class="modal-header" >
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <br/>
+            </div>
+            <div class="modal-body" align="center">
+                <img id="show_img" style="display: block;margin-left: auto;margin-right: auto;" width="700"/>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="video_modal" tabindex="-1" role="dialog" aria-labelledby="modal_title" aria-hidden="true">
+    <div class="modal-dialog" style="width:800px">
+        <div class="modal-content">
+            <div class="modal-header" >
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <br/>
+            </div>
+            <div class="modal-body" align="center">
+                <video id="show_vid" width="600" height="450" controls>
+                  Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+    </div>
+</div>
+<input id="image_file" onchange="send_image(event)" name="file" type="file" accept="image/*" style="postion:fixed;top:-300px;left:-300px;width:0px;">
+<input id="video_file" onchange="send_video(event)" name="file" type="file" accept="video/mp4" style="postion:fixed;top:-300px;left:-300px;width:0px;">
+
 {% endblock %}

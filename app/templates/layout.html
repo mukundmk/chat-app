@@ -1,5 +1,6 @@
 <html>
     <head>
+        <title>Chat!</title>
         <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
@@ -9,14 +10,15 @@
         <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/material.min.js"></script>
-        <script src='https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/cryptico.min.js'></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/jsbn.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/random.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/hash.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/rsa.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/aes.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cryptico/0.0.1343522940/api.min.js"></script>
-        <script src="{{ url_for('static', filename='js/typeahead.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/pidcrypt.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='js/pidcrypt_util.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='js/asn1.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='js/jsbn.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='js/rng.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='js/prng4.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='js/rsa.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/certparser.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/typeahead.js') }}"></script>
         <style>
             ::-webkit-scrollbar {
                 display: none;

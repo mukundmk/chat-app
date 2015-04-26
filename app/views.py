@@ -3,11 +3,15 @@ __author__ = 'mukundmk'
 import hashlib
 import datetime
 import os.path
+import base64
+import random
+import string
 
 from flask.ext.login import login_required, login_user, logout_user, current_user
 from flask import *
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
+from Crypto.PublicKey import RSA
 
 from app import app, db, lm, active_users, neo4jcli
 from .models import User, KeyTable
@@ -23,6 +27,15 @@ def before_request():
 @lm.user_loader
 def load_user(userid):
     return User.query.get(int(userid))
+
+@lm.header_loader
+def load_user_from_header(header_val):
+    header_val = header_val.replace('Basic ', '', 1)
+    try:
+        header_val = base64.b64decode(header_val)
+    except TypeError:
+        pass
+    return User.query.filter_by(api_key=header_val).first()
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -46,7 +59,14 @@ def login():
             aes = AES.new(key, AES.MODE_CBC, IV=app.config['IV'])
             cyphertext = KeyTable.query.get(user.id).passphrase.decode('hex')
             passphrase = aes.decrypt(cyphertext)
-            session['passphrase'] = passphrase
+            key2 = PBKDF2(passphrase, app.config['SECRET_KEY'], count=10000).encode('hex')
+            aes = AES.new(key2, AES.MODE_CBC, IV=app.config['IV'])
+            f = open('keys/'+str(user.id)+'_private.txt')
+            session['privatekey'] = aes.decrypt(f.read()).rstrip('\x00')
+            f.close()
+            f = open('keys/'+str(user.id)+'_public.txt')
+            session['publickey'] = aes.decrypt(f.read()).rstrip('\x00')
+            f.close()
             g.user = user
             return redirect(url_for('index'))
 
@@ -65,11 +85,14 @@ def register():
         user = User.query.filter_by(email=request.form['email']).first()
         if user:
             return render_template('register.html', invalid=True, register=True)
+        api_key = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                          for _ in range(32))
         user = User(name=request.form['name'],
                     email=request.form['email'],
                     password=hashlib.sha512(request.form['password']).hexdigest(),
                     activated=False,
-                    status='')
+                    status='',
+                    api_key=api_key)
         db.session.add(user)
         db.session.commit()
         token = generate_token(user.email)
@@ -85,8 +108,22 @@ def register():
         encrypted_key = KeyTable(id=user.id, passphrase=cyphertext.encode('hex'))
         db.session.add(encrypted_key)
         db.session.commit()
+        key2 = PBKDF2(passphrase, app.config['SECRET_KEY'], count=10000).encode('hex')
+        aes = AES.new(key2, AES.MODE_CBC, IV=app.config['IV'])
+        new_key = RSA.generate(1024, e=65537)
+        private_key = new_key.exportKey('PEM')
+        l = 16 - (len(private_key) % 16)
+        private_key += '\x00' * l
+        f = open('keys/'+str(user.id)+'_private.txt', 'w')
+        f.write(aes.encrypt(private_key))
+        f.close()
+        public_key = new_key.publickey().exportKey('PEM')
+        l = 16 - (len(public_key) % 16)
+        public_key += '\x00' * l
+        f = open('keys/'+str(user.id)+'_public.txt', 'w')
+        f.write(aes.encrypt(public_key))
+        f.close()
         send_email(user.email, subject, msg)
-
         return redirect(url_for('index'))
     else:
         return render_template('register.html', register=True)
@@ -178,9 +215,10 @@ def get_messages():
     if os.path.isfile('messages/'+response['id1']+'_'+response['id2']+'.txt'):
         f = open('messages/'+response['id1']+'_'+response['id2']+'.txt')
         data = f.readlines()
-        for i in range(len(data)//2):
-            response['data'].append([data[2*i].decode('string_escape').strip(),
-                                     data[(2*i)+1].decode('string_escape').strip()])
+        for i in range(len(data)//3):
+            response['data'].append([data[3*i].decode('string_escape').strip(),
+                                     data[(3*i)+1].decode('string_escape').strip(),
+                                     data[(3*i)+2].decode('string_escape').strip()])
     return json.dumps(response)
 
 
@@ -310,10 +348,10 @@ def decline_friend():
     return json.dumps(added)
 
 
-@app.route('/get_passphrase')
+@app.route('/get_keys')
 @login_required
-def get_passphrase():
-    return session.get('passphrase')
+def get_keys():
+    return json.dumps({'privatekey': session.get('privatekey'), 'publickey': session.get('publickey')})
 
 
 @app.route('/update_publickey', methods=['POST'])
@@ -334,3 +372,43 @@ def get_publickey():
         return json.dumps({'id': request.args.get('id'), 'key': key.publickey})
     else:
         return 'bad request', 400
+
+
+@app.route('/get_media_file')
+@login_required
+def get_media_file():
+    if os.path.isfile('messages/media_'+request.args.get('id')+'.txt'):
+        f = open('messages/media_'+request.args.get('id')+'.txt')
+        return f.read()
+    else:
+        return 'File Not Found', 404
+
+@app.route('/apikey', methods=['POST'])
+def get_apikey():
+    email = request.form.get('email')
+    passwd = request.form.get('password')
+    if not email or not passwd:
+        return json.dumps({'error': 'invalid credentials'})
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return json.dumps({'error': 'invalid credentials'})
+    if not user.is_active():
+        return json.dumps({'error': 'invalid credentials'})
+    password = hashlib.sha512(passwd).hexdigest()
+    if password != user.password:
+        return json.dumps({'error': 'invalid credentials'})
+    response_data = dict()
+    response_data['apikey'] = base64.b64encode(user.api_key)
+    key = PBKDF2(passwd, app.config['SECRET_KEY'], count=10000).encode('hex')
+    aes = AES.new(key, AES.MODE_CBC, IV=app.config['IV'])
+    cyphertext = KeyTable.query.get(user.id).passphrase.decode('hex')
+    passphrase = aes.decrypt(cyphertext)
+    key2 = PBKDF2(passphrase, app.config['SECRET_KEY'], count=10000).encode('hex')
+    aes = AES.new(key2, AES.MODE_CBC, IV=app.config['IV'])
+    f = open('keys/'+str(user.id)+'_private.txt')
+    response_data['privatekey'] = aes.decrypt(f.read()).rstrip('\x00')
+    f.close()
+    f = open('keys/'+str(user.id)+'_public.txt')
+    response_data['publickey'] = aes.decrypt(f.read()).rstrip('\x00')
+    f.close()
+    return json.dumps(response_data)
