@@ -54,7 +54,9 @@ public class HomeScreen extends ActionBarActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.new_message) {
+            Intent newMessageIntent = new Intent(getApplicationContext(), NewMessage.class);
+            startActivity(newMessageIntent);
             return true;
         }
 
