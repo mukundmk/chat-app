@@ -17,6 +17,6 @@ db = SQLAlchemy(app)
 mail = Mail(app)
 socketio = SocketIO(app)
 active_users = dict()
-neo4jcli = Neo4jClient(username='neo4j',password='sony4741')
+neo4jcli = Neo4jClient(username='neo4j', password='sony4741')
 
 from app import views, models, events

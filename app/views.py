@@ -30,6 +30,7 @@ def load_user(userid):
 
 @lm.header_loader
 def load_user_from_header(header_val):
+    print header_val
     header_val = header_val.replace('Basic ', '', 1)
     try:
         header_val = base64.b64decode(header_val)
@@ -105,9 +106,6 @@ def register():
         passphrase = os.urandom(32)
         aes = AES.new(key, AES.MODE_CBC, IV=app.config['IV'])
         cyphertext = aes.encrypt(passphrase)
-        encrypted_key = KeyTable(id=user.id, passphrase=cyphertext.encode('hex'))
-        db.session.add(encrypted_key)
-        db.session.commit()
         key2 = PBKDF2(passphrase, app.config['SECRET_KEY'], count=10000).encode('hex')
         aes = AES.new(key2, AES.MODE_CBC, IV=app.config['IV'])
         new_key = RSA.generate(1024, e=65537)
@@ -118,6 +116,9 @@ def register():
         f.write(aes.encrypt(private_key))
         f.close()
         public_key = new_key.publickey().exportKey('PEM')
+        encrypted_key = KeyTable(id=user.id, passphrase=cyphertext.encode('hex'), publickey=public_key)
+        db.session.add(encrypted_key)
+        db.session.commit()
         l = 16 - (len(public_key) % 16)
         public_key += '\x00' * l
         f = open('keys/'+str(user.id)+'_public.txt', 'w')
@@ -164,6 +165,30 @@ def index():
     users.sort(key=lambda item: item['name'])
     added.sort(key=lambda item: item['name'])
     return render_template('index.html', name=g.user.name, userid=g.user.id, users=users, added=added)
+
+@app.route('/get_friends')
+@login_required
+def get_friends():
+    add, friends = neo4jcli.get_added_user(g.user.id)
+    users = list()
+    added = list()
+    for friend in friends:
+        user = User.query.get(int(friend))
+        data = dict()
+        data['id'] = str(user.id)
+        data['name'] = str(user.name)
+        users.append(data)
+
+    for toadd in add:
+        user = User.query.get(int(toadd))
+        data = dict()
+        data['id'] = str(user.id)
+        data['name'] = str(user.name)
+        added.append(data)
+
+    users.sort(key=lambda item: item['name'])
+    added.sort(key=lambda item: item['name'])
+    return json.dumps({'friends': users, 'added_you': added})
 
 
 @app.route('/logout')
@@ -215,10 +240,11 @@ def get_messages():
     if os.path.isfile('messages/'+response['id1']+'_'+response['id2']+'.txt'):
         f = open('messages/'+response['id1']+'_'+response['id2']+'.txt')
         data = f.readlines()
-        for i in range(len(data)//3):
-            response['data'].append([data[3*i].decode('string_escape').strip(),
-                                     data[(3*i)+1].decode('string_escape').strip(),
-                                     data[(3*i)+2].decode('string_escape').strip()])
+        for i in range(len(data)//4):
+            response['data'].append([data[4*i].decode('string_escape').strip(),
+                                     data[(4*i)+1].decode('string_escape').strip(),
+                                     data[(4*i)+2].decode('string_escape').strip(),
+                                     data[(4*i)+3].decode('string_escape')])
     return json.dumps(response)
 
 
@@ -379,7 +405,13 @@ def get_publickey():
 def get_media_file():
     if os.path.isfile('messages/media_'+request.args.get('id')+'.txt'):
         f = open('messages/media_'+request.args.get('id')+'.txt')
-        return f.read()
+        temp_json = json.loads(f.read())
+        json_data = dict()
+        if not temp_json.get(str(g.user.id)):
+            return 'Unauthorized', 400
+        json_data['aes_key'] = temp_json.get(str(g.user.id), '')
+        json_data['ciphertext'] = temp_json.get('ciphertext', '')
+        return json.dumps(json_data)
     else:
         return 'File Not Found', 404
 
@@ -387,6 +419,7 @@ def get_media_file():
 def get_apikey():
     email = request.form.get('email')
     passwd = request.form.get('password')
+    print email,passwd
     if not email or not passwd:
         return json.dumps({'error': 'invalid credentials'})
     user = User.query.filter_by(email=email).first()
@@ -410,5 +443,12 @@ def get_apikey():
     f.close()
     f = open('keys/'+str(user.id)+'_public.txt')
     response_data['publickey'] = aes.decrypt(f.read()).rstrip('\x00')
+    response_data['id'] = str(user.id)
     f.close()
+    active_users[str(user.id)] = True
     return json.dumps(response_data)
+
+@app.route('/apilogout')
+@login_required
+def api_logout():
+    active_users[str(current_user.id)] = False

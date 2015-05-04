@@ -67,14 +67,16 @@ function set_keys(result){
 }
 function ready(result){
     user=result;
-    socket = io.connect('https://' + document.domain + ':' + location.port + '/chat');
+    socket = io.connect('https://' + document.domain + ':' + location.port + '/chat' );
     socket.on('connect', function(msg) {
         console.log(msg);
     });
     socket.on('receive message', function(msg) {
         if(msg.type == 'text') {
-            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(msg.data));
-            var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(msg.aes_key));
+            var aes_key = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            aes_key = aes_key.substring(0,18);
+            var plaintext = GibberishAES.dec(msg.data, aes_key);
             $("#messages_" + msg.from).append("<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('" + msg.from + "')\" src=\"/get_image?id=" + msg.from + "\"/></div><div class=\"bubble bubble-left\">" + plaintext + "</div></div>");
         }
         else if(msg.type == 'image') {
@@ -86,26 +88,32 @@ function ready(result){
             $("#messages_" + msg.from).append("<div class=\"bubble-container\"><div class=\"avatar avatar-left\"><img onclick=\"view_profile('" + msg.from + "')\" src=\"/get_image?id=" + msg.from + "\"/></div><div class=\"bubble bubble-left\"><button class=\"btn btn-primary\" onclick=\"viewVideo('" + plaintext + "')\">Video</button></div></div>");
         }
     });
+    socket.on('join room req', function(msg){
+       socket.emit('join room', {'id':user.id}) ;
+    });
     $('#send').click(function(event) {
         var msg = {};
         var plaintext = $("#msg").val();
         if(plaintext=='')
             return;
         msg.to = active_id;
+        msg.from = user.id;
         msg.type = 'text';
         if(public_keys[msg.to]) {
+            var aes_key = generate_random_string();
+            msg.data = GibberishAES.enc(plaintext,aes_key);
             var params = certParser(public_keys[msg.to]);
             var key = pidCryptUtil.decodeBase64(params.b64);
             var rsa_encrypt2 = new pidCrypt.RSA();
             var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
             var tree = asn.toHexTree();
             rsa_encrypt2.setPublicKeyFromASN(tree);
-            var crypted = rsa_encrypt2.encrypt(plaintext);
+            var crypted = rsa_encrypt2.encrypt(aes_key);
             var fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
-            msg.data_1 = pidCryptUtil.fragment(fromHex,64);
-            crypted = rsa_encrypt.encrypt(plaintext);
+            msg.key_1 = pidCryptUtil.fragment(fromHex,64);
+            crypted = rsa_encrypt.encrypt(aes_key);
             fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
-            msg.data_2 = pidCryptUtil.fragment(fromHex,64);
+            msg.key_2 = pidCryptUtil.fragment(fromHex,64);
             $("#msg").val("");
             $("#messages_" + active_id).append("<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id=" + user.id + "&time=" + changed_time + "\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\">" + plaintext + "</div></div>");
             socket.emit('send message', msg);
@@ -127,20 +135,23 @@ function send_image(event){
         var msg = {};
         var plaintext = reader.result;
         msg.to = active_id;
+        msg.from = user.id
         msg.type = 'image';
         if(public_keys[msg.to]) {
+            var aes_key = generate_random_string();
+            msg.data = GibberishAES.enc(plaintext,aes_key);
             var params = certParser(public_keys[msg.to]);
             var key = pidCryptUtil.decodeBase64(params.b64);
             var rsa_encrypt2 = new pidCrypt.RSA();
             var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
             var tree = asn.toHexTree();
             rsa_encrypt2.setPublicKeyFromASN(tree);
-            var crypted = rsa_encrypt2.encrypt(plaintext);
+            var crypted = rsa_encrypt2.encrypt(aes_key);
             var fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
-            msg.data_1 = pidCryptUtil.fragment(fromHex,64);
-            crypted = rsa_encrypt.encrypt(plaintext);
+            msg.key_1 = pidCryptUtil.fragment(fromHex,64);
+            crypted = rsa_encrypt.encrypt(aes_key);
             fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
-            msg.data_2 = pidCryptUtil.fragment(fromHex,64);
+            msg.key_2 = pidCryptUtil.fragment(fromHex,64);
             $("#msg").val("");
             $("#messages_"+ active_id).append("<div class=\"bubble-container\"><div class=\"avatar avatar-right\"><img class=\"my-img\" src=\"/get_image?id=" + user.id + "&time=" + changed_time + "\"/></div><div class=\"bubble bubble-right\" style=\"text-align:right\"><button class=\"btn btn-primary\" onclick=\"viewImage2('"+plaintext+"')\">Image</button></div></div>");
             socket.emit('send message', msg);
@@ -156,20 +167,23 @@ function send_video(event){
         var msg = {};
         var plaintext = reader.result;
         msg.to = active_id;
+        msg.from = user.id
         msg.type = 'video';
         if(public_keys[msg.to]) {
+            var aes_key = generate_random_string();
+            msg.data = GibberishAES.enc(plaintext,aes_key);
             var params = certParser(public_keys[msg.to]);
             var key = pidCryptUtil.decodeBase64(params.b64);
             var rsa_encrypt2 = new pidCrypt.RSA();
             var asn = pidCrypt.ASN1.decode(pidCryptUtil.toByteArray(key));
             var tree = asn.toHexTree();
             rsa_encrypt2.setPublicKeyFromASN(tree);
-            var crypted = rsa_encrypt2.encrypt(plaintext);
+            var crypted = rsa_encrypt2.encrypt(aes_key);
             var fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
-            msg.data_1 = pidCryptUtil.fragment(fromHex,64);
-            crypted = rsa_encrypt.encrypt(plaintext);
+            msg.key_1 = pidCryptUtil.fragment(fromHex,64);
+            crypted = rsa_encrypt.encrypt(aes_key);
             fromHex = pidCryptUtil.encodeBase64(pidCryptUtil.convertFromHex(crypted));
-            msg.data_2 = pidCryptUtil.fragment(fromHex,64);
+            msg.key_2 = pidCryptUtil.fragment(fromHex,64);
             console.log(msg);
             socket.emit('send message', msg);
             $("#msg").val("");
@@ -183,8 +197,11 @@ function viewImage(imgsrcid){
     $.ajax('/get_media_file?id='+imgsrcid,{
         cache: true,
         success: function(result){
-            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result));
-            var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            r = JSON.parse(result);
+            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(r.aes_key));
+            var aes_key = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            aes_key = aes_key.substring(0,18);
+            var plaintext = GibberishAES.dec(r.ciphertext, aes_key);
             $("#show_img").attr("src",plaintext);
             $("#image_modal").modal();
         }
@@ -200,8 +217,11 @@ function viewVideo(vidsrcid){
     $.ajax('/get_media_file?id='+vidsrcid,{
         cache: true,
         success: function(result){
-            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result));
-            var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            r = JSON.parse(result);
+            var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(r.aes_key));
+            var aes_key = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+            aes_key = aes_key.substring(0,18);
+            var plaintext = GibberishAES.dec(r.ciphertext, aes_key);
             var source = document.createElement('source');
             $(source).attr({
                 'type':'video/mp4',
@@ -276,10 +296,10 @@ function set_active(id){
             var text="";
             for(var i in result["data"]){
                 if(result["data"][i][1]=='text'){
-                    var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result["data"][i][2]));
-                    var plaintext = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
-                    console.log('h');
-                    console.log(plaintext);
+                    var ciphertext = pidCryptUtil.decodeBase64(pidCryptUtil.stripLineFeeds(result["data"][i][3]));
+                    var aes_key = rsa_decrypt.decrypt(pidCryptUtil.convertToHex(ciphertext));
+                    aes_key = aes_key.substring(0,18);
+                    var plaintext = GibberishAES.dec(result["data"][i][2], aes_key);
                 }
                 else
                     var plaintext = result["data"][i][2];
@@ -393,4 +413,11 @@ function decline_friend(id){
         }
         $("#profile_modal").modal('hide');
     });
+}
+function generate_random_string(){
+    var ab= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789";
+    var out=""
+    for(var i =0;i<18;i++)
+        out+=ab.charAt(Math.floor(Math.random()*62));
+    return out;
 }
