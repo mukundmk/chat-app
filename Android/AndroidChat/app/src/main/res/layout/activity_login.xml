@@ -13,27 +13,77 @@
 
     <ScrollView android:id="@+id/login_form" android:layout_width="match_parent"
         android:layout_height="match_parent">
+        <LinearLayout
+            android:id="@+id/email_login_form"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:orientation="vertical">
 
-        <LinearLayout android:id="@+id/email_login_form" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="Email"
+                android:id="@+id/loginUsernameText"
+                android:layout_gravity="center_horizontal"
+                android:textColor="#01579b"
+                android:textSize="20sp"/>
+            <AutoCompleteTextView
+                android:id="@+id/email"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:inputType="text"
+                android:textSize="32sp"
+                android:padding="10dp"
+                android:textColor="#01579b"
+                android:background="@drawable/inputbox"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp">
+                <requestFocus/>
+            </AutoCompleteTextView>
 
-            <AutoCompleteTextView android:id="@+id/email" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:hint="@string/prompt_email"
-                android:inputType="textEmailAddress" android:maxLines="1"
-                android:singleLine="true" />
-
-            <EditText android:id="@+id/password" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:hint="@string/prompt_password"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="Password"
+                android:id="@+id/loginPasswordText"
+                android:layout_gravity="center_horizontal"
+                android:textColor="#01579b"
+                android:textSize="20sp"/>
+            <EditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="40dp"
+                android:inputType="textPassword"
+                android:textSize="32sp"
+                android:padding="10dp"
+                android:textColor="#01579b"
+                android:background="@drawable/inputbox"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
                 android:imeActionId="@+id/login"
                 android:imeActionLabel="@string/action_sign_in_short"
-                android:imeOptions="actionUnspecified" android:inputType="textPassword"
-                android:maxLines="1" android:singleLine="true" />
+                android:imeOptions="actionUnspecified">
+            </EditText>
 
-            <Button android:id="@+id/email_sign_in_button" style="?android:textAppearanceSmall"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="16dp" android:text="@string/action_sign_in"
-                android:textStyle="bold" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="40dp"
+                android:layout_gravity="center">
 
+                <Button
+                    android:id="@+id/email_sign_in_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_login"/>
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

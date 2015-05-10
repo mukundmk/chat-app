@@ -1,20 +1,22 @@
 package com.chatapp.androidchat;
 
+import android.app.ActionBar;
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
-import android.text.TextUtils;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import io.socket.IOAcknowledge;
 import io.socket.IOCallback;
@@ -33,112 +35,52 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
-public class MessageActivity extends ActionBarActivity {
+public class MessageActivity extends Activity {
 
     private EditText messageInput;
     private SocketIO socket;
-    private ArrayAdapter arrayAdapter;
+    private MessageAdapter arrayAdapter;
     private ListView listView;
     private String data, friendId;
     private CryptModule crypt;
-    private ArrayList<String> messages;
+    private ArrayList<Message> messages;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_message);
-        messages = new ArrayList<String>();
-       friendId = getIntent().getStringExtra("friend_id");
+        getWindow().setNavigationBarColor(Color.parseColor("#01579b"));
+        messages = new ArrayList<>();
+        Intent intent = getIntent();
+        friendId = intent.getStringExtra("friend_id");
+        ActionBar mActionBar = getActionBar();
+        mActionBar.setDisplayShowHomeEnabled(false);
+        mActionBar.setDisplayShowTitleEnabled(false);
+        mActionBar.setDisplayShowCustomEnabled(true);
+        mActionBar.setDisplayUseLogoEnabled(false);
+        LayoutInflater mInflater = LayoutInflater.from(this);
+
+        View mCustomView = mInflater.inflate(R.layout.actionbar_user, null);
+        TextView mTitleTextView = (TextView) mCustomView.findViewById(R.id.textViewActionBar);
+        mTitleTextView.setText(intent.getStringExtra("friend_name"));
+        RoundedImageView mTitleImageView = (RoundedImageView) mCustomView.findViewById(R.id.imageViewActionBar);
+        Bitmap bmp = null;
+        try {
+            FileInputStream is = this.openFileInput("bitmap.png");
+            bmp = BitmapFactory.decodeStream(is);
+            is.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        mTitleImageView.setImageBitmap(bmp);
+        mActionBar.setCustomView(mCustomView);
         GetMessages getMessages = new GetMessages();
         getMessages.execute(friendId);
-        /**
-        messageInput = (EditText) findViewById(R.id.editText);
-        Button sendButton = (Button) findViewById(R.id.button);
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                attemptSend();
-            }
-        });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(messageInput, InputMethodManager.SHOW_FORCED);
-    }
-
-    private Emitter.Listener onNewMessage = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            // TODO new message contains what all fields?
-            MessageActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    JSONObject data = (JSONObject) args[0];
-                    String message;
-                    try {
-                        message = data.getString("message");
-                    } catch (JSONException e) {
-                        return;
-                    }
-
-                    addMessage(message);
-                }
-            });
-        }
-    };
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        socket.off("receive message");
-    }
-
-    private void addMessage(String message) {
-        messages.add(message);
-        arrayAdapter.notifyDataSetChanged();
-        listView.setAdapter(arrayAdapter);
-    }
-
-    private void attemptSend() {
-        String message = messageInput.getText().toString().trim();
-        if (TextUtils.isEmpty(message)) {
-            return;
-        }
-
-        messageInput.setText("");
-        socket.emit("receive message", message);
-    */
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_message, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 
     private class GetMessages extends AsyncTask<String, Void, Void> {
@@ -158,11 +100,16 @@ public class MessageActivity extends ActionBarActivity {
                     httpResponse.getEntity().writeTo(out);
                     JSONObject responseJSON = new JSONObject(out.toString());
                     out.close();
+                    String id = sharedPreferences.getString("ID","");
                     JSONArray messagesJSON = responseJSON.getJSONArray("data");
                     for (int i = 0; i < messagesJSON.length(); i++) {
                         JSONArray message = messagesJSON.getJSONArray(i);
-                        if(message.getString(1).equals("text"))
-                            messages.add(crypt.decrypt(message.getString(2), message.getString(3)));
+                        if(message.getString(1).equals("text")) {
+                            if(message.getString(0).equals(id))
+                                messages.add(new Message(crypt.decrypt(message.getString(2), message.getString(3)),0));
+                            else
+                                messages.add(new Message(crypt.decrypt(message.getString(2), message.getString(3)),1));
+                        }
                     }
                 } else {
                     httpResponse.getEntity().getContent().close();
@@ -191,7 +138,7 @@ public class MessageActivity extends ActionBarActivity {
         @Override
         protected void onPostExecute(Void param) {
             listView = (ListView) findViewById(R.id.listView2);
-            arrayAdapter = new ArrayAdapter(getApplicationContext(), R.layout.message, messages);
+            arrayAdapter = new MessageAdapter(getApplicationContext(), R.layout.message_left, messages);
             arrayAdapter.setNotifyOnChange(true);
             listView.setAdapter(arrayAdapter);
             SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.shared_preferences), Context.MODE_PRIVATE);
@@ -260,7 +207,7 @@ public class MessageActivity extends ActionBarActivity {
                                     @Override
                                     public void run() {
 
-                                        messages.add(plaintext);
+                                        messages.add(new Message(plaintext,1));
                                         arrayAdapter.notifyDataSetChanged();
                                         listView.setAdapter(arrayAdapter);
                                     }
@@ -296,7 +243,7 @@ public class MessageActivity extends ActionBarActivity {
                         json.put("key_1",cipher[1]);
                         json.put("key_2",cipher[2]);
                         socket.emit("send message",json);
-                        messages.add(messageInput.getText().toString());
+                        messages.add(new Message(messageInput.getText().toString(),0));
                         arrayAdapter.notifyDataSetChanged();
                         listView.setAdapter(arrayAdapter);
                         messageInput.setText("");
@@ -306,5 +253,14 @@ public class MessageActivity extends ActionBarActivity {
                 }
             });
         }
+    }
+}
+
+class Message{
+    String message;
+    int direction;
+    public Message(String message, int direction){
+        this.message = message;
+        this.direction = direction;
     }
 }

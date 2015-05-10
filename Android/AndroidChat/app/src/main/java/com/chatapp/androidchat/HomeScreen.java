@@ -1,17 +1,20 @@
 package com.chatapp.androidchat;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -25,44 +28,28 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class HomeScreen extends ActionBarActivity {
+public class HomeScreen extends Activity {
 
+    private static String apiKey;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_screen);
+        getWindow().setNavigationBarColor(Color.parseColor("#01579b"));
+        SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.shared_preferences), Context.MODE_PRIVATE);
+        apiKey = sharedPreferences.getString("API_KEY", null);
         GetFriendsList getFriendsList = new GetFriendsList();
         getFriendsList.execute();
     }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_home_screen, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.new_message) {
-            Intent newMessageIntent = new Intent(getApplicationContext(), NewMessage.class);
-            startActivity(newMessageIntent);
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+    public static String getApiKey(){
+        return apiKey;
     }
 
     public class GetFriendsList extends AsyncTask<Void, Void, List<User>>{
@@ -83,7 +70,7 @@ public class HomeScreen extends ActionBarActivity {
                     JSONArray friends = responseJSON.getJSONArray("friends");
                     for(int i=0; i<friends.length(); i++){
                         JSONObject userDetails = friends.getJSONObject(i);
-                        User user = new User(userDetails.getString("id"), userDetails.getString("name"), null);//"/get_image?id="+userDetails.getString("id"));
+                        User user = new User(userDetails.getString("id"), userDetails.getString("name"),getString(R.string.server_address) +"/get_image?id="+userDetails.getString("id"));
                         friendsDetails.add(user);
                     }
                     return friendsDetails;
@@ -108,8 +95,20 @@ public class HomeScreen extends ActionBarActivity {
             listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    ImageView iw = (ImageView) ((RelativeLayout) view).getChildAt(0);
+                    Bitmap bmp = ((BitmapDrawable) iw.getDrawable()).getBitmap();
+                    try {
+                        String filename = "bitmap.png";
+                        FileOutputStream stream = openFileOutput(filename, Context.MODE_PRIVATE);
+                        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                        stream.close();
+                        bmp.recycle();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     Intent messageActivityIntent = new Intent(getApplicationContext(), MessageActivity.class);
                     messageActivityIntent.putExtra("friend_id", friendsList.get(position).getId());
+                    messageActivityIntent.putExtra("friend_name", friendsList.get(position).getName());
                     startActivity(messageActivityIntent);
                 }
             });

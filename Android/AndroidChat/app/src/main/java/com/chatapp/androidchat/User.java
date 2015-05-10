@@ -4,7 +4,6 @@ public class User {
     private String id;
     private String name;
     private String profileImageURL;
-
     public User(String id, String name, String profileImageURL){
         this.id = id;
         this.name = name;
